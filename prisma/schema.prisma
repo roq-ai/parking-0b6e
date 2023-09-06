@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["clientExtensions", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions      = [pgcrypto]
+}
+
+model organization {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  description   String?         @db.VarChar(255)
+  name          String          @db.VarChar(255)
+  created_at    DateTime        @default(now()) @db.Timestamp(6)
+  updated_at    DateTime        @default(now()) @db.Timestamp(6)
+  user_id       String          @db.Uuid
+  tenant_id     String          @db.VarChar(255)
+  user          user            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parking_space parking_space[]
+}
+
+model parking_space {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  space_number    String       @db.VarChar(255)
+  is_available    Boolean
+  organization_id String       @db.Uuid
+  created_at      DateTime     @default(now()) @db.Timestamp(6)
+  updated_at      DateTime     @default(now()) @db.Timestamp(6)
+  organization    organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model report {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  report_date   DateTime @db.Date
+  total_entries Int?
+  total_exits   Int?
+  total_revenue Int?
+  manager_id    String   @db.Uuid
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+  updated_at    DateTime @default(now()) @db.Timestamp(6)
+  user          user     @relation(fields: [manager_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model ticket {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticket_number String   @db.VarChar(255)
+  issue_time    DateTime @db.Timestamp(6)
+  vehicle_id    String   @db.Uuid
+  cashier_id    String   @db.Uuid
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+  updated_at    DateTime @default(now()) @db.Timestamp(6)
+  user          user     @relation(fields: [cashier_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vehicle       vehicle  @relation(fields: [vehicle_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String         @unique @db.VarChar(255)
+  firstName    String?        @db.VarChar(255)
+  lastName     String?        @db.VarChar(255)
+  roq_user_id  String         @db.VarChar(255)
+  tenant_id    String         @db.VarChar(255)
+  created_at   DateTime       @default(now()) @db.Timestamp(6)
+  updated_at   DateTime       @default(now()) @db.Timestamp(6)
+  organization organization[]
+  report       report[]
+  ticket       ticket[]
+  vehicle      vehicle[]
+}
+
+model vehicle {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehicle_number String    @db.VarChar(255)
+  entry_time     DateTime  @db.Timestamp(6)
+  exit_time      DateTime? @db.Timestamp(6)
+  parking_cost   Int?
+  cashier_id     String    @db.Uuid
+  created_at     DateTime  @default(now()) @db.Timestamp(6)
+  updated_at     DateTime  @default(now()) @db.Timestamp(6)
+  ticket         ticket[]
+  user           user      @relation(fields: [cashier_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
